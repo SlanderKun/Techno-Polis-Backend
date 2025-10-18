@@ -121,8 +121,8 @@ jobs:
             ls -l
             cd /opt/myapp/backend
             ls -l
-            docker compose -f docker-compose.yml down -v
             make build
+            docker compose -f docker-compose.yml down -v
             make migrate
             make down
             make up
