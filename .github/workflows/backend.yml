@@ -16,7 +16,7 @@ permissions:
 env:
   REGISTRY: ghcr.io
   BACKEND_IMAGE: technopolis-backend
-  DEPLOY_DIR: /opt/myapp/backend   # заливаем именно сюда
+  DEPLOY_DIR: /opt/myapp
 
 jobs:
   build-and-push:
@@ -48,8 +48,8 @@ jobs:
       - name: Build & Push backend
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: ./Dockerfile
+          context: ./app
+          file: ./app/Dockerfile
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ steps.lower_owner.outputs.val }}/${{ env.BACKEND_IMAGE }}:sha-${{ github.sha }}
@@ -58,7 +58,6 @@ jobs:
 
       - name: Debug - image ref
         run: echo "IMAGE=${{ env.REGISTRY }}/${{ steps.lower_owner.outputs.val }}/${{ env.BACKEND_IMAGE }}:sha-${{ github.sha }}"
-
   upload-backend-files:
     needs: build-and-push
     runs-on: ubuntu-latest
@@ -84,16 +83,15 @@ jobs:
           target: /opt/myapp/backend
           overwrite: true
           strip_components: 0
-
   deploy:
-    needs: [build-and-push, upload-backend-files]
+    needs: build-and-push
     runs-on: ubuntu-latest
     env:
       OWNER_LOWER: ${{ needs.build-and-push.outputs.owner_lower }}
       BACKEND_TAG: sha-${{ github.sha }}
 
     steps:
-      - name: Deploy and Run migrations
+      - name: Remote deploy (backend only)
         uses: appleboy/ssh-action@v1.2.0
         env:
           DEPLOY_DIR:     ${{ env.DEPLOY_DIR }}
