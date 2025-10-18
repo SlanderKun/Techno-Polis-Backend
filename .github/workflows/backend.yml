@@ -16,7 +16,7 @@ permissions:
 env:
   REGISTRY: ghcr.io
   BACKEND_IMAGE: technopolis-backend
-  DEPLOY_DIR: /opt/myapp
+  DEPLOY_DIR: /opt/myapp/backend
 
 jobs:
   build-and-push:
