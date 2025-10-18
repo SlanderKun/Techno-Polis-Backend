@@ -120,23 +120,23 @@ jobs:
             cat deploy.env
 
             echo "== Compose pull backend =="
-            docker compose pull --ignore-buildable backend || true
+            docker compose pull --ignore-buildable fastapi-app || true
 
             echo "== Running make up =="
-            make up || docker compose up -d backend
+            make up || docker compose up -d fastapi-app
             sleep 5 || true
 
             echo "== Running make migrate =="
             make migrate 2>/dev/null || make migration 2>/dev/null || true
 
             echo "== Restart backend after migrations =="
-            make up || docker compose up -d backend
+            make up || docker compose up -d fastapi-app
 
             echo "== Backend containers =="
             docker compose ps || true
 
             echo "== Tail backend logs =="
-            docker compose logs --tail=100 backend || true
+            docker compose logs --tail=100 fastapi-app || true
 
             set +e
             for u in http://localhost:8080/ http://127.0.0.1:8080/; do
@@ -146,5 +146,5 @@ jobs:
               fi
             done
             echo "❌ Backend healthcheck failed, showing last logs..."
-            docker compose logs --no-color --tail=200 backend || true
+            docker compose logs --no-color --tail=200 fastapi-app || true
             exit 1
