@@ -74,15 +74,11 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT != '' && secrets.SSH_PORT || '22' }}
-          source: |
-            ./docker-compose.yml
-            ./app
-            ./Dockerfile
-            ./alembic.ini
-            ./prod.txt
+          source: "docker-compose.yml,app,Dockerfile,alembic.ini,prod.txt,Makefile"
           target: /opt/myapp/backend
           overwrite: true
           strip_components: 0
+
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
