@@ -58,7 +58,7 @@ jobs:
       - name: Debug - image ref
         run: echo "IMAGE=${{ env.REGISTRY }}/${{ steps.lower_owner.outputs.val }}/${{ env.BACKEND_IMAGE }}:sha-${{ github.sha }}"
 
-  deploy:
+    deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
     env:
@@ -68,7 +68,7 @@ jobs:
     steps:
       - name: Preflight: resolve & probe SSH
         env:
-          HOST: ${{ secrets.SSH_HOST }}
+          HOST: 158.160.201.116
           PORT: ${{ secrets.SSH_PORT != '' && secrets.SSH_PORT || '22' }}
         run: |
           set -euxo pipefail
@@ -88,7 +88,7 @@ jobs:
           GHCR_USER:  ${{ secrets.GHCR_READ_USERNAME != '' && secrets.GHCR_READ_USERNAME || github.actor }}
           GHCR_TOKEN: ${{ secrets.GHCR_READ_TOKEN    != '' && secrets.GHCR_READ_TOKEN    || secrets.GITHUB_TOKEN }}
         with:
-          host: 158.160.201.116           
+          host: 158.160.201.116
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT != '' && secrets.SSH_PORT || '22' }}
@@ -97,8 +97,6 @@ jobs:
             set -euxo pipefail
             cd "$DEPLOY_DIR"
             echo "SERVER_DIR=$(pwd)"
-
-            # GHCR login (для сервера лучше PAT с read:packages)
             docker login "${REGISTRY}" -u "${GHCR_USER}" -p "${GHCR_TOKEN}" >/dev/null
 
             # deploy.env для backend
@@ -118,21 +116,24 @@ jobs:
             [ -n "$FILES" ] || { echo "compose-файлы не найдены в $DEPLOY_DIR"; exit 1; }
             echo "FILES=$FILES"
 
-            # env-файлы (добавляем только существующие)
             ENVFILES=""
             [ -f .env ] && ENVFILES="$ENVFILES --env-file .env"
             [ -f deploy.env ] && ENVFILES="$ENVFILES --env-file deploy.env"
-
             compose() { docker compose $FILES $ENVFILES "$@"; }
 
             echo "== services =="
             compose config --services || true
-
-            # подтянуть новый образ backend (если он через image:)
             compose pull --ignore-buildable backend || true
 
-            # поднять только backend, остальное не трогаем
-            compose up -d backend
+            # если у тебя Makefile есть — можно вызвать make migrate
+            echo "== bring up project =="
+            make up || compose up -d backend
+
+            echo "== Running migrations =="
+            make migrate || true
+
+            echo "== Restart backend =="
+            make up || compose up -d backend
 
             echo "== ps =="
             compose ps || true
@@ -140,14 +141,14 @@ jobs:
             echo "== last logs (backend) =="
             compose logs --tail=120 backend || true
 
-            # healthcheck (несколько вариантов)
             set +e
-            for u in http://localhost:8080/ http://127.0.0.1:8080/ http://localhost:8080/health http://localhost:8080/healthz http://localhost:8080/test; do
+            for u in http://localhost:8080/ http://127.0.0.1:8080/; do
               if curl -fsS "$u" >/dev/null 2>&1; then
                 echo "OK: backend is up at $u"
                 exit 0
               fi
             done
-            echo "Backend healthcheck failed, dumping last 200 lines…"
+            echo "Backend healthcheck failed, dumping logs…"
             compose logs --no-color --tail=200 backend || true
             exit 1
+
