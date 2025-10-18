@@ -120,6 +120,8 @@ jobs:
             cat deploy.env
 
             make build
+            make migrate
+            make down
             make up
 
             set +e
