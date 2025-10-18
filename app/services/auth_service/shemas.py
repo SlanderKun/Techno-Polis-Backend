@@ -19,3 +19,9 @@ class ErrorResponse(pydantic.BaseModel):
 class RegisterResponse(pydantic.BaseModel):
     status: str
     detail: str
+
+
+class LoginResponse(pydantic.BaseModel):
+    session_token: str
+    status: str
+    detail: str

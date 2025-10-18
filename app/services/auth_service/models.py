@@ -10,11 +10,9 @@ class Session(database.models.Base):
     id: sqlalchemy.orm.Mapped[database.models.intpk]
     created_at: sqlalchemy.orm.Mapped[database.models.created_at]
     updated_at: sqlalchemy.orm.Mapped[database.models.updated_at]
-
     user_id = sqlalchemy.Column(
         sqlalchemy.Integer,
         sqlalchemy.ForeignKey("users.id"),
-        primary_key=True,
     )
     key = sqlalchemy.Column(
         sqlalchemy.String(255),

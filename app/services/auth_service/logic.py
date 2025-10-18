@@ -1,6 +1,7 @@
 import os
 import re
 import hashlib
+import secrets
 
 import services.auth_service.io
 import services.auth_service.models
@@ -53,3 +54,17 @@ async def create_account(
         email=data.email,
         password_hash=password_hash,
     )
+
+
+async def create_session_token(
+    user_id: int,
+    location: str = "default",
+) -> str:
+    """Создаёт сессионный токен для пользователя."""
+    token = secrets.token_urlsafe(32)
+    while await services.auth_service.io.session_token_exists(token):
+        token = secrets.token_urlsafe(32)
+    await services.auth_service.io.create_session_token(
+        user_id, token, location
+    )
+    return token

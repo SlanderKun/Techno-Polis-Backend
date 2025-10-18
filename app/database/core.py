@@ -22,3 +22,8 @@ session_factory = sqlalchemy.orm.sessionmaker(sync_engine)
 async_session_factory = sqlalchemy.ext.asyncio.async_sessionmaker(
     async_engine,
 )
+
+
+async def get_db():
+    async with async_session_factory() as session:
+        yield session

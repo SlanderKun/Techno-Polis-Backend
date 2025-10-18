@@ -5,6 +5,8 @@ import utils.linked_routers.faststream_router
 import services.auth_service.shemas
 import services.auth_service.logic
 import services.auth_service.io
+import services.user_service.models
+import database.io.base_old
 
 
 router: faststream.rabbit.fastapi.RabbitRouter = (
@@ -28,12 +30,17 @@ async def register_endpoint(
     data: services.auth_service.shemas.RegisterRequestSchema,
 ):
     if not services.auth_service.logic.validate_password(data.password):
-        return fastapi.HTTPException(
-            status_code=400, detail="Password does not meet criteria"
+        raise fastapi.HTTPException(
+            status_code=400,
+            detail={
+                "status": "error",
+                "detail": "Password does not meet criteria",
+            },
         )
     if await services.auth_service.io.email_exists(data.email):
-        return fastapi.HTTPException(
-            status_code=400, detail="Email already registered"
+        raise fastapi.HTTPException(
+            status_code=400,
+            detail={"status": "error", "detail": "Email already registered"},
         )
     await services.auth_service.logic.create_account(data)
     return services.auth_service.shemas.RegisterResponse(
@@ -41,8 +48,46 @@ async def register_endpoint(
     )
 
 
-@router.post("/login", tags=["Login"])
+@router.post(
+    "/login",
+    response_model=services.auth_service.shemas.LoginResponse,
+    responses={
+        400: {
+            "model": services.auth_service.shemas.ErrorResponse,
+        }
+    },
+    tags=["Login"],
+)
 async def login_endpoint(
     data: services.auth_service.shemas.LoginRequestSchema,
+    request: fastapi.Request,
 ):
-    return {"status": "ok"}
+    if not (await services.auth_service.io.email_exists(data.email)):
+        raise fastapi.HTTPException(
+            status_code=400,
+            detail={"status": "error", "detail": "Invalid email or password"},
+        )
+    user: services.user_service.models.User = (
+        await database.io.base_old.get_object_by_field(
+            object_class=services.user_service.models.User,
+            value=data.email,
+            field=services.user_service.models.User.email,
+        )
+    )
+    if not services.auth_service.logic.validate_hash_password(
+        data.password, user.password_hash
+    ):
+        raise fastapi.HTTPException(
+            status_code=400,
+            detail={"status": "error", "detail": "Invalid email or password"},
+        )
+    location = request.client.host
+    location = request.headers.get("X-Forwarded-For", location)
+    session_token = await services.auth_service.logic.create_session_token(
+        user.id, location
+    )
+    return services.auth_service.shemas.LoginResponse(
+        session_token=session_token,
+        status="ok",
+        detail="Login successful",
+    )
