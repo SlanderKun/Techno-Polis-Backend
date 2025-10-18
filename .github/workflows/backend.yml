@@ -127,7 +127,7 @@ jobs:
             make up            
 
             set +e
-            for u in http://localhost:8000/docs http://127.0.0.1:8000/docs; do
+            for u in http://localhost:8000/health; do
               if curl -fsS "$u" >/dev/null 2>&1; then
                 echo "✅ Backend is up at $u"
                 exit 0
