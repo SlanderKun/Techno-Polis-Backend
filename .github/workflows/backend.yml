@@ -27,7 +27,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with: { fetch-depth: 1 }
+        with:
+          fetch-depth: 1
 
       - name: Owner -> lowercase
         id: lower_owner
@@ -58,7 +59,7 @@ jobs:
       - name: Debug - image ref
         run: echo "IMAGE=${{ env.REGISTRY }}/${{ steps.lower_owner.outputs.val }}/${{ env.BACKEND_IMAGE }}:sha-${{ github.sha }}"
 
-    deploy:
+  deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
     env:
@@ -97,6 +98,8 @@ jobs:
             set -euxo pipefail
             cd "$DEPLOY_DIR"
             echo "SERVER_DIR=$(pwd)"
+
+            # GHCR login (для сервера лучше PAT с read:packages)
             docker login "${REGISTRY}" -u "${GHCR_USER}" -p "${GHCR_TOKEN}" >/dev/null
 
             # deploy.env для backend
@@ -116,6 +119,7 @@ jobs:
             [ -n "$FILES" ] || { echo "compose-файлы не найдены в $DEPLOY_DIR"; exit 1; }
             echo "FILES=$FILES"
 
+            # env-файлы (добавляем только существующие)
             ENVFILES=""
             [ -f .env ] && ENVFILES="$ENVFILES --env-file .env"
             [ -f deploy.env ] && ENVFILES="$ENVFILES --env-file deploy.env"
@@ -123,17 +127,24 @@ jobs:
 
             echo "== services =="
             compose config --services || true
+
+            # подтянуть новый образ backend (если он через image:)
             compose pull --ignore-buildable backend || true
 
-            # если у тебя Makefile есть — можно вызвать make migrate
-            echo "== bring up project =="
-            make up || compose up -d backend
-
-            echo "== Running migrations =="
-            make migrate || true
-
-            echo "== Restart backend =="
-            make up || compose up -d backend
+            # поднимаем и мигрируем как локально (через Makefile, если есть)
+            if command -v make >/dev/null 2>&1; then
+              echo "== bring up project via make =="
+              make up || compose up -d backend
+              sleep 3 || true
+              echo "== Running migrations via make =="
+              make migrate || true
+              echo "== Restart backend via make =="
+              make up || compose up -d backend
+            else
+              compose up -d backend
+              # если без Makefile нужно мигрировать — раскомментируй:
+              # compose exec -T backend bash -lc "cd /app && alembic upgrade head" || true
+            fi
 
             echo "== ps =="
             compose ps || true
@@ -141,6 +152,7 @@ jobs:
             echo "== last logs (backend) =="
             compose logs --tail=120 backend || true
 
+            # healthcheck
             set +e
             for u in http://localhost:8080/ http://127.0.0.1:8080/; do
               if curl -fsS "$u" >/dev/null 2>&1; then
@@ -151,4 +163,3 @@ jobs:
             echo "Backend healthcheck failed, dumping logs…"
             compose logs --no-color --tail=200 backend || true
             exit 1
-
