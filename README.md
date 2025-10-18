@@ -21,3 +21,9 @@ make migrate
 ```bash
 make up
 ```
+
+
+# Контакты разработчика
+
++79320512554
+t.me/she1kopr9d
