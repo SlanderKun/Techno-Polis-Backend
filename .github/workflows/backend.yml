@@ -74,7 +74,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT != '' && secrets.SSH_PORT || '22' }}
-          source: "docker-compose.yml,app,Makefile"
+          source: "docker-compose.yml,app,makefile"
           target: /opt/myapp/backend
           overwrite: true
           strip_components: 0
