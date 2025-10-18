@@ -119,10 +119,12 @@ jobs:
             } >> deploy.env
             cat deploy.env
             ls -l
+            cd /opt/myapp/backend
+            ls -l
             make build
             make migrate
             make down
-            make up
+            make up            
 
             set +e
             for u in http://localhost:8000/docs http://127.0.0.1:8000/docs; do
