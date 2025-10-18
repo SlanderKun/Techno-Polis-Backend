@@ -118,7 +118,7 @@ jobs:
               echo "BACKEND_TAG=${BACKEND_TAG}"
             } >> deploy.env
             cat deploy.env
-
+            ls -l
             make build
             make migrate
             make down
