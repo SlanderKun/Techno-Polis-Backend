@@ -67,16 +67,6 @@ jobs:
       BACKEND_TAG: sha-${{ github.sha }}
 
     steps:
-      - name: Preflight: resolve & probe SSH
-        shell: bash
-        env:
-          HOST: 158.160.201.116
-          PORT: ${{ secrets.SSH_PORT != '' && secrets.SSH_PORT || '22' }}
-        run: |
-          set -euxo pipefail
-          getent hosts "$HOST" || true
-          timeout 5 bash -lc "cat </dev/null >/dev/tcp/$HOST/$PORT" && echo "PORT OPEN" || (echo "PORT CLOSED/TIMEOUT"; exit 1)
-
       - name: Remote deploy (backend only)
         uses: appleboy/ssh-action@v1.2.0
         env:
@@ -95,17 +85,19 @@ jobs:
           envs: DEPLOY_DIR,OWNER_LOWER,BACKEND_TAG,REGISTRY,BACKEND_IMAGE,GHCR_USER,GHCR_TOKEN
           script: |
             set -euxo pipefail
+            echo "== Connected to $(hostname) =="
+
             cd "$DEPLOY_DIR"
 
             docker login "${REGISTRY}" -u "${GHCR_USER}" -p "${GHCR_TOKEN}" >/dev/null
 
             # refresh deploy.env for backend
-            touch deploy.env
-            sed -i '/^BACKEND_OWNER=/d;/^BACKEND_TAG=/d' deploy.env
-            cat >> deploy.env <<EOF
-            BACKEND_OWNER=${OWNER_LOWER}
-            BACKEND_TAG=${BACKEND_TAG}
-            EOF
+            : > deploy.env
+            {
+              echo "BACKEND_OWNER=${OWNER_LOWER}"
+              echo "BACKEND_TAG=${BACKEND_TAG}"
+            } >> deploy.env
+            echo "== deploy.env ==" && cat deploy.env
 
             # collect compose files present in DEPLOY_DIR
             FILES=""
@@ -128,9 +120,12 @@ jobs:
 
             # bring up & migrations via Makefile if available
             if command -v make >/dev/null 2>&1; then
+              echo "== make up =="
               make up || compose up -d backend
               sleep 3 || true
+              echo "== make migrate (best-effort) =="
               make migrate 2>/dev/null || make migration 2>/dev/null || true
+              echo "== make up (again) =="
               make up || compose up -d backend
             else
               compose up -d backend
