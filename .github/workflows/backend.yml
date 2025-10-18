@@ -48,8 +48,8 @@ jobs:
       - name: Build & Push backend
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: ./Dockerfile
+          context: ./app
+          file: ./app/Dockerfile
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ steps.lower_owner.outputs.val }}/${{ env.BACKEND_IMAGE }}:sha-${{ github.sha }}
