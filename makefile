@@ -29,3 +29,9 @@ up:
 
 down:
 	docker compose -f docker-compose.yml down
+
+up-network:
+	docker network create shared-net || true
+
+down-network:
+	docker network rm shared-net || true
