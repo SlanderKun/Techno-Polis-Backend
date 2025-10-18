@@ -1,5 +1,6 @@
 import enum
 import sqlalchemy
+import sqlalchemy.orm
 
 import database.models
 
@@ -10,10 +11,26 @@ class UserRole(enum.Enum):
     company = "company"
 
 
-class User(database.models.BaseTable):
-    __tablename__ = 'users'
+class UserStatus(enum.Enum):
+    pending = "pending"
+    active = "active"
+    inactive = "inactive"
+    banned = "banned"
 
-    role = sqlalchemy.Column(sqlalchemy.Enum(UserRole), nullable=False)
+
+class User(database.models.Base):
+    __tablename__ = "users"
+
+    id: sqlalchemy.orm.Mapped[database.models.intpk]
+    created_at: sqlalchemy.orm.Mapped[database.models.created_at]
+    updated_at: sqlalchemy.orm.Mapped[database.models.updated_at]
+
+    role = sqlalchemy.Column(sqlalchemy.Enum(UserRole), nullable=True)
+    status = sqlalchemy.Column(
+        sqlalchemy.Enum(UserStatus),
+        nullable=False,
+        default=UserStatus.pending,
+    )
     email = sqlalchemy.Column(
         sqlalchemy.String(50),
         nullable=False,

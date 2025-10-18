@@ -1,8 +1,8 @@
-"""users and sessions
+"""add status for user
 
-Revision ID: 4efe487289ae
-Revises:
-Create Date: 2025-10-18 07:57:51.952221
+Revision ID: abf84af6728e
+Revises: 4efe487289ae
+Create Date: 2025-10-18 08:35:31.471842
 
 """
 
@@ -13,8 +13,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = "4efe487289ae"
-down_revision: Union[str, Sequence[str], None] = None
+revision: str = "abf84af6728e"
+down_revision: Union[str, Sequence[str], None] = "4efe487289ae"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

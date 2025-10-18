@@ -1,14 +1,19 @@
 import sqlalchemy
+import sqlalchemy.orm
 
 import database.models
 
 
-class Session(database.models.BaseTable):
-    __tablename__ = 'sessions'
+class Session(database.models.Base):
+    __tablename__ = "sessions"
+
+    id: sqlalchemy.orm.Mapped[database.models.intpk]
+    created_at: sqlalchemy.orm.Mapped[database.models.created_at]
+    updated_at: sqlalchemy.orm.Mapped[database.models.updated_at]
 
     user_id = sqlalchemy.Column(
         sqlalchemy.Integer,
-        sqlalchemy.ForeignKey('users.pk'),
+        sqlalchemy.ForeignKey("users.id"),
         primary_key=True,
     )
     key = sqlalchemy.Column(

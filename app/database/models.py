@@ -22,11 +22,3 @@ updated_at = typing.Annotated[
 
 class Base(sqlalchemy.orm.DeclarativeBase):
     pass
-
-
-class BaseTable(Base):
-    __abstract__ = True
-
-    id: sqlalchemy.orm.Mapped[intpk]
-    created_at: sqlalchemy.orm.Mapped[created_at]
-    updated_at: sqlalchemy.orm.Mapped[updated_at]
