@@ -110,7 +110,7 @@ async def create_company(
 
 
 @router.get(
-    "/company/read/{{company_id}}/",
+    "/company/info/",
     response_model=services.company_service.shemas.CompanyUpdateSchema,
     tags=["Company"],
 )
