@@ -103,6 +103,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT != '' && secrets.SSH_PORT || '22' }}
           envs: DEPLOY_DIR,OWNER_LOWER,BACKEND_TAG,REGISTRY,BACKEND_IMAGE,GHCR_USER,GHCR_TOKEN
+          source: "docker-compose.yml,app,Dockerfile,alembic.ini,prod.txt,Makefile"
           script: |
             set -euxo pipefail
             echo "== Connected to $(hostname) =="
