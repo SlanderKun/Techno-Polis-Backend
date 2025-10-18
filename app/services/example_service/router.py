@@ -13,3 +13,8 @@ router: faststream.rabbit.fastapi.RabbitRouter = (
 @router.get("/health", tags=["Health Check"])
 async def health_check():
     return {"status": "ok"}
+
+
+@router.get("/health_2", tags=["Health Check 2"])
+async def health_check_2():
+    return {"status": "ok"}
