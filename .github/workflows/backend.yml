@@ -2,7 +2,7 @@ name: Backend CI/CD
 
 on:
   push:
-    branches: [ "master" ]
+    branches: ["master"]
   workflow_dispatch: {}
 
 concurrency:
@@ -16,7 +16,7 @@ permissions:
 env:
   REGISTRY: ghcr.io
   BACKEND_IMAGE: technopolis-backend
-  DEPLOY_DIR: /opt/myapp   # при необходимости поменяй путь здесь
+  DEPLOY_DIR: /opt/myapp
 
 jobs:
   build-and-push:
@@ -68,15 +68,14 @@ jobs:
 
     steps:
       - name: Preflight: resolve & probe SSH
+        shell: bash
         env:
           HOST: 158.160.201.116
           PORT: ${{ secrets.SSH_PORT != '' && secrets.SSH_PORT || '22' }}
         run: |
           set -euxo pipefail
-          echo "Resolving $HOST"
           getent hosts "$HOST" || true
-          echo "Probing TCP $HOST:$PORT"
-          timeout 5 bash -c "cat < /dev/null > /dev/tcp/$HOST/$PORT" && echo "PORT OPEN" || { echo "PORT CLOSED/TIMEOUT"; exit 1; }
+          timeout 5 bash -lc "cat </dev/null >/dev/tcp/$HOST/$PORT" && echo "PORT OPEN" || (echo "PORT CLOSED/TIMEOUT"; exit 1)
 
       - name: Remote deploy (backend only)
         uses: appleboy/ssh-action@v1.2.0
@@ -86,8 +85,8 @@ jobs:
           BACKEND_TAG:    ${{ env.BACKEND_TAG }}
           REGISTRY:       ${{ env.REGISTRY }}
           BACKEND_IMAGE:  ${{ env.BACKEND_IMAGE }}
-          GHCR_USER:  ${{ secrets.GHCR_READ_USERNAME != '' && secrets.GHCR_READ_USERNAME || github.actor }}
-          GHCR_TOKEN: ${{ secrets.GHCR_READ_TOKEN    != '' && secrets.GHCR_READ_TOKEN    || secrets.GITHUB_TOKEN }}
+          GHCR_USER:      ${{ secrets.GHCR_READ_USERNAME != '' && secrets.GHCR_READ_USERNAME || github.actor }}
+          GHCR_TOKEN:     ${{ secrets.GHCR_READ_TOKEN    != '' && secrets.GHCR_READ_TOKEN    || secrets.GITHUB_TOKEN }}
         with:
           host: 158.160.201.116
           username: ${{ secrets.SSH_USER }}
@@ -97,52 +96,45 @@ jobs:
           script: |
             set -euxo pipefail
             cd "$DEPLOY_DIR"
-            echo "SERVER_DIR=$(pwd)"
 
-            # GHCR login (для сервера лучше PAT с read:packages)
             docker login "${REGISTRY}" -u "${GHCR_USER}" -p "${GHCR_TOKEN}" >/dev/null
 
-            # deploy.env для backend
+            # refresh deploy.env for backend
             touch deploy.env
             sed -i '/^BACKEND_OWNER=/d;/^BACKEND_TAG=/d' deploy.env
             cat >> deploy.env <<EOF
             BACKEND_OWNER=${OWNER_LOWER}
             BACKEND_TAG=${BACKEND_TAG}
             EOF
-            echo "== deploy.env ==" && cat deploy.env
 
-            # собрать compose-файлы, как есть в каталоге
+            # collect compose files present in DEPLOY_DIR
             FILES=""
             for f in docker-compose.yml compose.yml compose.override.yml compose.db.yml; do
               [ -f "$f" ] && FILES="$FILES -f $f"
             done
-            [ -n "$FILES" ] || { echo "compose-файлы не найдены в $DEPLOY_DIR"; exit 1; }
-            echo "FILES=$FILES"
+            [ -n "$FILES" ] || { echo "compose files not found in $DEPLOY_DIR"; exit 1; }
 
-            # env-файлы (добавляем только существующие)
             ENVFILES=""
             [ -f .env ] && ENVFILES="$ENVFILES --env-file .env"
             [ -f deploy.env ] && ENVFILES="$ENVFILES --env-file deploy.env"
+
             compose() { docker compose $FILES $ENVFILES "$@"; }
 
             echo "== services =="
             compose config --services || true
 
-            # подтянуть новый образ backend (если он через image:)
+            # pull only backend image if declared with image:
             compose pull --ignore-buildable backend || true
 
-            # поднимаем и мигрируем как локально (через Makefile, если есть)
+            # bring up & migrations via Makefile if available
             if command -v make >/dev/null 2>&1; then
-              echo "== bring up project via make =="
               make up || compose up -d backend
               sleep 3 || true
-              echo "== Running migrations via make =="
-              make migrate || true
-              echo "== Restart backend via make =="
+              make migrate 2>/dev/null || make migration 2>/dev/null || true
               make up || compose up -d backend
             else
               compose up -d backend
-              # если без Makefile нужно мигрировать — раскомментируй:
+              # fallback to Alembic (uncomment if нужно):
               # compose exec -T backend bash -lc "cd /app && alembic upgrade head" || true
             fi
 
@@ -154,7 +146,7 @@ jobs:
 
             # healthcheck
             set +e
-            for u in http://localhost:8080/ http://127.0.0.1:8080/; do
+            for u in http://localhost:8080/ http://127.0.0.1:8080/ http://localhost:8080/health http://localhost:8080/healthz; do
               if curl -fsS "$u" >/dev/null 2>&1; then
                 echo "OK: backend is up at $u"
                 exit 0
