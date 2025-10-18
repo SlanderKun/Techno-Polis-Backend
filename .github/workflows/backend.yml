@@ -1,0 +1,153 @@
+name: Backend CI/CD
+
+on:
+  push:
+    branches: [ "master" ]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  BACKEND_IMAGE: technopolis-backend
+  DEPLOY_DIR: /opt/myapp   # при необходимости поменяй путь здесь
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    outputs:
+      owner_lower: ${{ steps.lower_owner.outputs.val }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with: { fetch-depth: 1 }
+
+      - name: Owner -> lowercase
+        id: lower_owner
+        shell: bash
+        run: echo "val=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & Push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ steps.lower_owner.outputs.val }}/${{ env.BACKEND_IMAGE }}:sha-${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ steps.lower_owner.outputs.val }}/${{ env.BACKEND_IMAGE }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ steps.lower_owner.outputs.val }}/${{ env.BACKEND_IMAGE }}:buildcache,mode=max
+
+      - name: Debug - image ref
+        run: echo "IMAGE=${{ env.REGISTRY }}/${{ steps.lower_owner.outputs.val }}/${{ env.BACKEND_IMAGE }}:sha-${{ github.sha }}"
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    env:
+      OWNER_LOWER: ${{ needs.build-and-push.outputs.owner_lower }}
+      BACKEND_TAG: sha-${{ github.sha }}
+
+    steps:
+      - name: Preflight: resolve & probe SSH
+        env:
+          HOST: ${{ secrets.SSH_HOST }}
+          PORT: ${{ secrets.SSH_PORT != '' && secrets.SSH_PORT || '22' }}
+        run: |
+          set -euxo pipefail
+          echo "Resolving $HOST"
+          getent hosts "$HOST" || true
+          echo "Probing TCP $HOST:$PORT"
+          timeout 5 bash -c "cat < /dev/null > /dev/tcp/$HOST/$PORT" && echo "PORT OPEN" || { echo "PORT CLOSED/TIMEOUT"; exit 1; }
+
+      - name: Remote deploy (backend only)
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          DEPLOY_DIR:     ${{ env.DEPLOY_DIR }}
+          OWNER_LOWER:    ${{ env.OWNER_LOWER }}
+          BACKEND_TAG:    ${{ env.BACKEND_TAG }}
+          REGISTRY:       ${{ env.REGISTRY }}
+          BACKEND_IMAGE:  ${{ env.BACKEND_IMAGE }}
+          GHCR_USER:  ${{ secrets.GHCR_READ_USERNAME != '' && secrets.GHCR_READ_USERNAME || github.actor }}
+          GHCR_TOKEN: ${{ secrets.GHCR_READ_TOKEN    != '' && secrets.GHCR_READ_TOKEN    || secrets.GITHUB_TOKEN }}
+        with:
+          host: 158.160.201.116           
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT != '' && secrets.SSH_PORT || '22' }}
+          envs: DEPLOY_DIR,OWNER_LOWER,BACKEND_TAG,REGISTRY,BACKEND_IMAGE,GHCR_USER,GHCR_TOKEN
+          script: |
+            set -euxo pipefail
+            cd "$DEPLOY_DIR"
+            echo "SERVER_DIR=$(pwd)"
+
+            # GHCR login (для сервера лучше PAT с read:packages)
+            docker login "${REGISTRY}" -u "${GHCR_USER}" -p "${GHCR_TOKEN}" >/dev/null
+
+            # deploy.env для backend
+            touch deploy.env
+            sed -i '/^BACKEND_OWNER=/d;/^BACKEND_TAG=/d' deploy.env
+            cat >> deploy.env <<EOF
+            BACKEND_OWNER=${OWNER_LOWER}
+            BACKEND_TAG=${BACKEND_TAG}
+            EOF
+            echo "== deploy.env ==" && cat deploy.env
+
+            # собрать compose-файлы, как есть в каталоге
+            FILES=""
+            for f in docker-compose.yml compose.yml compose.override.yml compose.db.yml; do
+              [ -f "$f" ] && FILES="$FILES -f $f"
+            done
+            [ -n "$FILES" ] || { echo "compose-файлы не найдены в $DEPLOY_DIR"; exit 1; }
+            echo "FILES=$FILES"
+
+            # env-файлы (добавляем только существующие)
+            ENVFILES=""
+            [ -f .env ] && ENVFILES="$ENVFILES --env-file .env"
+            [ -f deploy.env ] && ENVFILES="$ENVFILES --env-file deploy.env"
+
+            compose() { docker compose $FILES $ENVFILES "$@"; }
+
+            echo "== services =="
+            compose config --services || true
+
+            # подтянуть новый образ backend (если он через image:)
+            compose pull --ignore-buildable backend || true
+
+            # поднять только backend, остальное не трогаем
+            compose up -d backend
+
+            echo "== ps =="
+            compose ps || true
+
+            echo "== last logs (backend) =="
+            compose logs --tail=120 backend || true
+
+            # healthcheck (несколько вариантов)
+            set +e
+            for u in http://localhost:8080/ http://127.0.0.1:8080/ http://localhost:8080/health http://localhost:8080/healthz http://localhost:8080/test; do
+              if curl -fsS "$u" >/dev/null 2>&1; then
+                echo "OK: backend is up at $u"
+                exit 0
+              fi
+            done
+            echo "Backend healthcheck failed, dumping last 200 lines…"
+            compose logs --no-color --tail=200 backend || true
+            exit 1
