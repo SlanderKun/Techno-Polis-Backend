@@ -139,7 +139,7 @@ jobs:
             docker compose logs --tail=100 fastapi-app || true
 
             set +e
-            for u in http://localhost:8080/ http://127.0.0.1:8080/; do
+            for u in http://localhost:8000/ http://127.0.0.1:8000/; do
               if curl -fsS "$u" >/dev/null 2>&1; then
                 echo "✅ Backend is up at $u"
                 exit 0
