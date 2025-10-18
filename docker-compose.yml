@@ -1,0 +1,92 @@
+services:
+  postgres-db:
+    image: postgres:15
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - .env
+    logging:
+      driver: "none"
+    healthcheck:
+        test: ["CMD-SHELL", "pg_isready"]
+        interval: 5s
+        timeout: 5s
+        retries: 10
+    networks:
+      - shared-net
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    env_file:
+      - .env
+    environment:
+      RABBITMQ_LOGS: "-"
+      RABBITMQ_LOG_LEVEL: "warning"
+    logging:
+      driver: "none"
+    healthcheck:
+        test: ["CMD", "rabbitmq-diagnostics", "status"]
+        interval: 10s
+        timeout: 5s
+        retries: 10
+    networks:
+      - shared-net
+
+  fastapi-app:
+    build: ./app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./app:/app
+    networks:
+      - shared-net
+
+  celery-worker:
+    build: ./app
+    command: celery -A celery_app.app worker --loglevel=info
+    env_file:
+      - .env
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./app:/app
+    networks:
+      - shared-net
+
+  celery-beat:
+    build: ./app
+    command: celery -A celery_app.app beat --loglevel=info
+    env_file:
+      - .env
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./app:/app
+    networks:
+      - shared-net
+
+volumes:
+  postgres_data:
+
+networks:
+  shared-net:
+    external: true
