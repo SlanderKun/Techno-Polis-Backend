@@ -4,9 +4,16 @@ import utils.linked_routers
 
 app = fastapi.FastAPI()
 
+origins = [
+    "http://158.160.201.116",
+]
+
 app.add_middleware(
     fastapi.middleware.cors.CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 utils.linked_routers.load_all_service_routers()
