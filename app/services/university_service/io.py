@@ -1,5 +1,5 @@
-import services.university_service.shemas
 import services.university_service.models
+import services.university_service.shemas
 import sqlalchemy.ext.asyncio
 
 

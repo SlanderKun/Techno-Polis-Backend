@@ -1,7 +1,6 @@
 import fastapi
-import utils.linked_routers
-
 import fastapi.middleware.cors
+import utils.linked_routers
 
 app = fastapi.FastAPI()
 

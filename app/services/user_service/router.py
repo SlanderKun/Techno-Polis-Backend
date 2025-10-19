@@ -1,12 +1,12 @@
 import random
-import fastapi
+
 import config
+import fastapi
 import faststream.rabbit.fastapi
-import utils.linked_routers.faststream_router
-import services.user_service.shemas
 import services.auth_service.io
 import services.user_service.models
-
+import services.user_service.shemas
+import utils.linked_routers.faststream_router
 
 router: faststream.rabbit.fastapi.RabbitRouter = (
     utils.linked_routers.faststream_router.FastStreamRouter(

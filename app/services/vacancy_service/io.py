@@ -1,5 +1,5 @@
-import services.company_service.shemas
 import services.company_service.models
+import services.company_service.shemas
 import sqlalchemy.ext.asyncio
 
 

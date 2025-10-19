@@ -1,6 +1,7 @@
 from typing import Any
-import sqlalchemy.ext.asyncio
+
 import services.user_service.models
+import sqlalchemy.ext.asyncio
 
 
 async def update_user_field(

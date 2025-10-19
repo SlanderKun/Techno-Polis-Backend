@@ -1,17 +1,16 @@
-import services.company_service.models
-import fastapi
 import config
-import faststream.rabbit.fastapi
-import utils.linked_routers.faststream_router
 import database.core
-import services.company_service.io
-import services.company_service.shemas
+import database.io.base_old
+import fastapi
+import faststream.rabbit.fastapi
 import services.auth_service.io
+import services.company_service.io
+import services.company_service.models
+import services.company_service.shemas
+import services.user_service.io
 import services.user_service.models
 import sqlalchemy.ext.asyncio
-import services.user_service.io
-import database.io.base_old
-
+import utils.linked_routers.faststream_router
 
 router: faststream.rabbit.fastapi.RabbitRouter = (
     utils.linked_routers.faststream_router.FastStreamRouter(

@@ -1,8 +1,7 @@
-import sqlalchemy
-import sqlalchemy.orm
-
 import database.models
 import services.resume_service.models
+import sqlalchemy
+import sqlalchemy.orm
 
 
 class Internship(database.models.Base):

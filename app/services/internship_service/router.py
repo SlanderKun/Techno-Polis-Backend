@@ -1,9 +1,9 @@
 import random
+
 import config
 import faststream.rabbit.fastapi
-import utils.linked_routers.faststream_router
 import services.internship_service.shemas
-
+import utils.linked_routers.faststream_router
 
 router: faststream.rabbit.fastapi.RabbitRouter = (
     utils.linked_routers.faststream_router.FastStreamRouter(

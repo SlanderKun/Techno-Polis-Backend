@@ -1,7 +1,6 @@
+import database.models
 import sqlalchemy
 import sqlalchemy.orm
-
-import database.models
 
 
 class Session(database.models.Base):

@@ -1,8 +1,8 @@
 import enum
-import sqlalchemy
-import sqlalchemy.orm
 
 import database.models
+import sqlalchemy
+import sqlalchemy.orm
 
 
 class UserRole(enum.Enum):

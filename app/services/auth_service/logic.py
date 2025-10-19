@@ -1,12 +1,11 @@
+import hashlib
 import os
 import re
-import hashlib
 import secrets
 
 import services.auth_service.io
 import services.auth_service.models
 import services.auth_service.shemas
-
 import services.user_service.io
 import services.user_service.models
 

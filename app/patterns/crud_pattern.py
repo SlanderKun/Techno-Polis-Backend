@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from typing import Type, List
-from pydantic import BaseModel
-from sqlalchemy.orm import DeclarativeMeta
+from typing import List, Type
+
 import database.core
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import DeclarativeMeta
 
 
 # Асинхронная зависимость для БД

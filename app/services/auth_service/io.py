@@ -1,8 +1,8 @@
-import sqlalchemy
 import database.core
-import sqlalchemy.ext.asyncio
-import services.user_service.models
 import services.auth_service.models
+import services.user_service.models
+import sqlalchemy
+import sqlalchemy.ext.asyncio
 
 
 async def create_user(

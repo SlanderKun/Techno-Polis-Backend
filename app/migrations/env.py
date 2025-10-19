@@ -1,15 +1,14 @@
 from logging.config import fileConfig
 
 import config as cfg
-from alembic import context
-from database.models import Base  # noqa
-from sqlalchemy import engine_from_config, pool
-
 import services.auth_service.models  # noqa: F401
 import services.company_service.models  # noqa: F401
 import services.example_service.models  # noqa: F401
-import services.user_service.models  # noqa: F401
 import services.university_service.models  # noqa: F401
+import services.user_service.models  # noqa: F401
+from alembic import context
+from database.models import Base  # noqa
+from sqlalchemy import engine_from_config, pool
 
 config = context.config
 

@@ -1,13 +1,12 @@
-import fastapi
 import config
-import faststream.rabbit.fastapi
-import utils.linked_routers.faststream_router
-import services.auth_service.shemas
-import services.auth_service.logic
-import services.auth_service.io
-import services.user_service.models
 import database.io.base_old
-
+import fastapi
+import faststream.rabbit.fastapi
+import services.auth_service.io
+import services.auth_service.logic
+import services.auth_service.shemas
+import services.user_service.models
+import utils.linked_routers.faststream_router
 
 router: faststream.rabbit.fastapi.RabbitRouter = (
     utils.linked_routers.faststream_router.FastStreamRouter(

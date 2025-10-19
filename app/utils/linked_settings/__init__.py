@@ -1,6 +1,7 @@
-from utils.linked_settings import base_settings
 import importlib
 import pkgutil
+
+from utils.linked_settings import base_settings
 
 
 def load_settings():
