@@ -6,6 +6,9 @@ import services.company_service.models  # noqa: F401
 import services.example_service.models  # noqa: F401
 import services.university_service.models  # noqa: F401
 import services.user_service.models  # noqa: F401
+import services.resume_service.models  # noqa: F401
+import services.vacancy_service.models  # noqa: F401
+import services.internship_service.models  # noqa: F401
 from alembic import context
 from database.models import Base  # noqa
 from sqlalchemy import engine_from_config, pool

@@ -1,62 +1,63 @@
-import services.company_service.models
-import services.company_service.shemas
+import services.resume_service.models
+import services.resume_service.shemas
 import sqlalchemy.ext.asyncio
 
 
-async def create_company(
-    data: services.company_service.shemas.CompanyCreateSchema,
+async def create_resume(
+    data: services.resume_service.shemas.ResumeCreateInfo,
     db: sqlalchemy.ext.asyncio.AsyncSession,
-) -> services.company_service.models.CompanyInfo:
-    """Создаёт новую компанию в базе данных."""
-    new_company = services.company_service.models.CompanyInfo(
-        representative_name=data.representative_name,
-        representative_surname=data.representative_surname,
-        company_name=data.company_name,
-        logo=data.logo,
-        inn=data.inn,
-        contact_number=data.contact_number,
-        contact_email=data.contact_email,
+) -> services.resume_service.models.Resume:
+    """Создаёт новое резюме в базе данных."""
+    new_resume = services.resume_service.models.Resume(
+        name=data.name,
+        phone=data.phone,
+        resume_link=data.resume_link,
+        email=data.email,
+        confidencial=data.confidencial,
+        mallings=data.mallings,
+        sms_ad=data.sms_ad,
+        external_id=data.external_id,
     )
-    db.add(new_company)
+    db.add(new_resume)
     await db.commit()
-    await db.refresh(new_company)
-    return new_company
+    await db.refresh(new_resume)
+    return new_resume
 
 
-async def update_company(
-    data: services.company_service.shemas.CompanyUpdateSchema,
+async def update_resume(
+    data: services.resume_service.shemas.ResumeUpdate,
     db: sqlalchemy.ext.asyncio.AsyncSession,
-) -> services.company_service.models.CompanyInfo:
-    """Обновляет компанию по её ID."""
+) -> services.resume_service.models.Resume:
+    """Обновляет резюме по его ID."""
     result = await db.execute(
-        sqlalchemy.select(services.company_service.models.CompanyInfo).where(
-            services.company_service.models.CompanyInfo.id == data.id
+        sqlalchemy.select(services.resume_service.models.Resume).where(
+            services.resume_service.models.Resume.id == data.id
         )
     )
-    company: services.company_service.models.CompanyInfo | None = (
+    resume: services.resume_service.models.Resume | None = (
         result.scalar_one_or_none()
     )
-    if not company:
-        raise ValueError(f"Company with id {data.id} not found")
+    if not resume:
+        raise ValueError(f"Resume with id {data.id} not found")
     for field, value in data.dict(exclude_unset=True).items():
-        setattr(company, field, value)
+        setattr(resume, field, value)
     await db.commit()
-    await db.refresh(company)
-    return company
+    await db.refresh(resume)
+    return resume
 
 
-async def delete_company(
-    company_id: int, db: sqlalchemy.ext.asyncio.AsyncSession
+async def delete_resume(
+    resume_id: int, db: sqlalchemy.ext.asyncio.AsyncSession
 ) -> None:
     result = await db.execute(
-        sqlalchemy.select(services.company_service.models.CompanyInfo).where(
-            services.company_service.models.CompanyInfo.id == company_id
+        sqlalchemy.select(services.resume_service.models.Resume).where(
+            services.resume_service.models.Resume.id == resume_id
         )
     )
-    company: services.company_service.models.CompanyInfo | None = (
+    resume: services.resume_service.models.Resume | None = (
         result.scalar_one_or_none()
     )
-    if not company:
-        raise ValueError(f"Company with id {company_id} not found")
-    await db.delete(company)
+    if not resume:
+        raise ValueError(f"Resume with id {resume_id} not found")
+    await db.delete(resume)
     await db.commit()

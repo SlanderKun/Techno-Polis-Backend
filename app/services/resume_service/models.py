@@ -1,5 +1,5 @@
 import enum
-
+import typing
 import database.models
 import sqlalchemy
 import sqlalchemy.orm
@@ -14,6 +14,12 @@ class ResumeStatus(enum.Enum):
 
 
 class Resume(database.models.Base):
+    __tablename__ = "resumes"
+
+    id: sqlalchemy.orm.Mapped[database.models.intpk]
+    created_at: sqlalchemy.orm.Mapped[database.models.created_at]
+    updated_at: sqlalchemy.orm.Mapped[database.models.updated_at]
+
     status = sqlalchemy.Column(
         sqlalchemy.Enum(ResumeStatus),
         nullable=False,
@@ -26,3 +32,4 @@ class Resume(database.models.Base):
     confidencial = sqlalchemy.Column(sqlalchemy.Boolean)
     mallings = sqlalchemy.Column(sqlalchemy.Boolean)
     sms_ad = sqlalchemy.Column(sqlalchemy.Boolean)
+    external_id: sqlalchemy.orm.Mapped[typing.Annotated[int, None]]

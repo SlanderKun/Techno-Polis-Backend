@@ -169,11 +169,11 @@ async def update_university(
 
 
 @router.delete(
-    "/university/delete/{{company_id}}/",
+    "/university/delete/{{university_id}}/",
     tags=["University"],
 )
-async def delete_company(
-    company_id: int,
+async def delete_university(
+    university_id: int,
     session_token: str = fastapi.Header(...),
     db: sqlalchemy.ext.asyncio.AsyncSession = fastapi.Depends(
         database.core.get_db
@@ -188,11 +188,11 @@ async def delete_company(
             status_code=403,
             detail="User is not allowed to read a university",
         )
-    await services.university_service.io.delete_company(
-        company_id,
+    await services.university_service.io.delete_university(
+        university_id,
         db,
     )
     return {
         "status": "ok",
-        "detail": f"University with id {company_id} has been deleted",
+        "detail": f"University with id {university_id} has been deleted",
     }

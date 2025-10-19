@@ -4,9 +4,7 @@ import utils.linked_routers
 
 app = fastapi.FastAPI()
 
-origins = [
-    "http://158.160.201.116",
-]
+origins = ["*"]
 
 app.add_middleware(
     fastapi.middleware.cors.CORSMiddleware,

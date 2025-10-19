@@ -29,7 +29,13 @@ class EnumSpeciality(enum.Enum):
 
 
 class Vacancy(database.models.Base):
-    user_id = sqlalchemy.orm.mapped_column(sqlalchemy.ForeignKey("User.id"))
+    __tablename__ = "vacancies"
+
+    id: sqlalchemy.orm.Mapped[database.models.intpk]
+    created_at: sqlalchemy.orm.Mapped[database.models.created_at]
+    updated_at: sqlalchemy.orm.Mapped[database.models.updated_at]
+
+    user_id = sqlalchemy.orm.mapped_column(sqlalchemy.ForeignKey("users.id"))
     name = sqlalchemy.Column(sqlalchemy.String(1500))
     logo = sqlalchemy.Column(sqlalchemy.String(1500), nullable=True)
     company_name = sqlalchemy.Column(sqlalchemy.String(1500))

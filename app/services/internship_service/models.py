@@ -1,25 +1,31 @@
 import database.models
-import services.resume_service.models
+import services.vacancy_service.models
 import sqlalchemy
 import sqlalchemy.orm
 
 
 class Internship(database.models.Base):
+    __tablename__ = "internships"
+
+    id: sqlalchemy.orm.Mapped[database.models.intpk]
+    created_at: sqlalchemy.orm.Mapped[database.models.created_at]
+    updated_at: sqlalchemy.orm.Mapped[database.models.updated_at]
+
     user_id: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(
-        sqlalchemy.ForeignKey("User.id")
+        sqlalchemy.ForeignKey("users.id")
     )
     name = sqlalchemy.Column(sqlalchemy.String(1500))
     logo = sqlalchemy.Column(sqlalchemy.String(1500), nullable=True)
     company_name = sqlalchemy.Column(sqlalchemy.String(1500))
     platform = sqlalchemy.Column(
-        sqlalchemy.Enum(services.resume_service.models.EnumPlatform),
+        sqlalchemy.Enum(services.vacancy_service.models.EnumPlatform),
         nullable=False,
-        default=services.resume_service.models.EnumPlatform.alabushevo,
+        default=services.vacancy_service.models.EnumPlatform.alabushevo,
     )
     speciality = sqlalchemy.Column(
-        sqlalchemy.Enum(services.resume_service.models.EnumSpeciality),
+        sqlalchemy.Enum(services.vacancy_service.models.EnumSpeciality),
         nullable=False,
-        default=services.resume_service.models.EnumSpeciality.hr,
+        default=services.vacancy_service.models.EnumSpeciality.hr,
     )
     responsibilities = sqlalchemy.Column(sqlalchemy.String(1500))
     requirements = sqlalchemy.Column(sqlalchemy.String(1500))
