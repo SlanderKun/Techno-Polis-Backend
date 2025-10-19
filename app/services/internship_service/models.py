@@ -6,8 +6,8 @@ import services.resume_service.models
 
 
 class Internship(database.models.Base):
-    user_id: sqlalchemy.orm.Mapped[int] = (
-        sqlalchemy.orm.mapped_column(sqlalchemy.ForeignKey("User.id"))
+    user_id: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(
+        sqlalchemy.ForeignKey("User.id")
     )
     name = sqlalchemy.Column(sqlalchemy.String(1500))
     logo = sqlalchemy.Column(sqlalchemy.String(1500), nullable=True)
@@ -24,7 +24,9 @@ class Internship(database.models.Base):
     )
     responsibilities = sqlalchemy.Column(sqlalchemy.String(1500))
     requirements = sqlalchemy.Column(sqlalchemy.String(1500))
-    official_employment = sqlalchemy.Column(sqlalchemy.String(1500), nullable=True)
+    official_employment = sqlalchemy.Column(
+        sqlalchemy.String(1500), nullable=True
+    )
     work_shedule = sqlalchemy.Column(sqlalchemy.String(1500), nullable=True)
     work_place = sqlalchemy.Column(sqlalchemy.String(1500), nullable=True)
     map_place = sqlalchemy.Column(sqlalchemy.String(1500), nullable=True)

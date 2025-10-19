@@ -45,7 +45,9 @@ class Vacancy(database.models.Base):
     )
     responsibilities = sqlalchemy.Column(sqlalchemy.String(1500))
     requirements = sqlalchemy.Column(sqlalchemy.String(1500))
-    official_employment = sqlalchemy.Column(sqlalchemy.String(1500), nullable=True)
+    official_employment = sqlalchemy.Column(
+        sqlalchemy.String(1500), nullable=True
+    )
     work_shedule = sqlalchemy.Column(sqlalchemy.String(1500), nullable=True)
     work_place = sqlalchemy.Column(sqlalchemy.String(1500), nullable=True)
     map_place = sqlalchemy.Column(sqlalchemy.String(1500), nullable=True)

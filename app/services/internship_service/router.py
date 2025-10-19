@@ -45,7 +45,8 @@ async def get_all_internship():
                 mailings=True,
                 sms_ad=True,
             )
-        ]*random.randint(1, 10),
+        ]
+        * random.randint(1, 10),
     )
 
 

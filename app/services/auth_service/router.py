@@ -24,7 +24,7 @@ router: faststream.rabbit.fastapi.RabbitRouter = (
             "model": services.auth_service.shemas.ErrorResponse,
         }
     },
-    tags=["Register"],
+    tags=["Auth"],
 )
 async def register_endpoint(
     data: services.auth_service.shemas.RegisterRequestSchema,
@@ -56,7 +56,7 @@ async def register_endpoint(
             "model": services.auth_service.shemas.ErrorResponse,
         }
     },
-    tags=["Login"],
+    tags=["Auth"],
 )
 async def login_endpoint(
     data: services.auth_service.shemas.LoginRequestSchema,
