@@ -27,7 +27,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT != '' && secrets.SSH_PORT || '22' }}
-          source: "Dockerfile,docker-compose.yml,makefile"
+          source: "Dockerfile,docker-compose.yml,makefile,app"
           target: ${{ env.DEPLOY_DIR }}
           overwrite: true
           strip_components: 0
