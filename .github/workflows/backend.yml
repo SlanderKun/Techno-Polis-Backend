@@ -1,143 +1,54 @@
-name: Backend CI/CD
+name: Template CI/CD
 
 on:
   push:
-    branches: ["master"]
+    branches: [ "master" ]
   workflow_dispatch: {}
 
 concurrency:
-  group: deploy-backend
+  group: deploy-universal
   cancel-in-progress: true
 
 permissions:
   contents: read
-  packages: write
 
 env:
-  REGISTRY: ghcr.io
-  BACKEND_IMAGE: technopolis-backend
   DEPLOY_DIR: /opt/myapp/backend
+  PROJECT_NAME: backend
 
 jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
-    outputs:
-      owner_lower: ${{ steps.lower_owner.outputs.val }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - name: Owner -> lowercase
-        id: lower_owner
-        shell: bash
-        run: echo "val=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
-
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Setup Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build & Push backend
-        uses: docker/build-push-action@v6
-        with:
-          context: ./app
-          file: ./app/Dockerfile
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ steps.lower_owner.outputs.val }}/${{ env.BACKEND_IMAGE }}:sha-${{ github.sha }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ steps.lower_owner.outputs.val }}/${{ env.BACKEND_IMAGE }}:buildcache
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ steps.lower_owner.outputs.val }}/${{ env.BACKEND_IMAGE }}:buildcache,mode=max
-
-      - name: Debug - image ref
-        run: echo "IMAGE=${{ env.REGISTRY }}/${{ steps.lower_owner.outputs.val }}/${{ env.BACKEND_IMAGE }}:sha-${{ github.sha }}"
-  upload-backend-files:
-    needs: build-and-push
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: appleboy/scp-action@v0.1.7
         with:
-          fetch-depth: 1
-
-      - name: Upload backend project to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: 158.160.201.116
+          host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT != '' && secrets.SSH_PORT || '22' }}
-          source: "docker-compose.yml,app,makefile"
-          target: /opt/myapp/backend
+          source: "Dockerfile,docker-compose.yml,makefile"
+          target: ${{ env.DEPLOY_DIR }}
           overwrite: true
           strip_components: 0
 
-  deploy:
-    needs: upload-backend-files
-    runs-on: ubuntu-latest
-    env:
-      OWNER_LOWER: ${{ needs.build-and-push.outputs.owner_lower }}
-      BACKEND_TAG: sha-${{ github.sha }}
-
-    steps:
-      - name: Remote deploy (backend only)
-        uses: appleboy/ssh-action@v1.2.0
-        env:
-          DEPLOY_DIR:     ${{ env.DEPLOY_DIR }}
-          OWNER_LOWER:    ${{ env.OWNER_LOWER }}
-          BACKEND_TAG:    ${{ env.BACKEND_TAG }}
-          REGISTRY:       ${{ env.REGISTRY }}
-          BACKEND_IMAGE:  ${{ env.BACKEND_IMAGE }}
-          GHCR_USER:      ${{ secrets.GHCR_READ_USERNAME != '' && secrets.GHCR_READ_USERNAME || github.actor }}
-          GHCR_TOKEN:     ${{ secrets.GHCR_READ_TOKEN    != '' && secrets.GHCR_READ_TOKEN    || secrets.GITHUB_TOKEN }}
+      - uses: appleboy/ssh-action@v1.2.0
         with:
-          host: 158.160.201.116
+          host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT != '' && secrets.SSH_PORT || '22' }}
-          envs: DEPLOY_DIR,OWNER_LOWER,BACKEND_TAG,REGISTRY,BACKEND_IMAGE,GHCR_USER,GHCR_TOKEN
+          envs: DEPLOY_DIR,PROJECT_NAME
           script: |
-            set -euxo pipefail
-            echo "== Connected to $(hostname) =="
+            set -e
             cd "$DEPLOY_DIR"
+            if [ -f "Makefile" ]; then
+              make build
+              make migrate
+              make up
+            else
+              docker compose down || true
+              docker compose build
+              docker compose up -d
+            fi
 
-            echo "== Docker login to GHCR =="
-            docker login "${REGISTRY}" -u "${GHCR_USER}" -p "${GHCR_TOKEN}" >/dev/null
-
-            echo "== Update deploy.env =="
-            : > deploy.env
-            {
-              echo "BACKEND_OWNER=${OWNER_LOWER}"
-              echo "BACKEND_TAG=${BACKEND_TAG}"
-            } >> deploy.env
-            cat deploy.env
-            ls -l
-            cd /opt/myapp/backend
-            ls -l
-            make build
-            make migrate
-            make down
-            make up
-                        
-            set +e
-            echo "== Waiting for backend to start =="
-
-            for i in {1..10}; do
-              if curl -fsS http://localhost:8000/health | grep -q '"status":"ok"'; then
-                echo "✅ Backend is up (responded with status ok)"
-                exit 0
-              fi
-              echo "⏳ Attempt $i/10: backend not ready yet..."
-              sleep 3
-            done
-
-            echo "❌ Backend healthcheck failed after 10 attempts"
-            docker compose logs --no-color --tail=200 fastapi-app || true
-            exit 1
